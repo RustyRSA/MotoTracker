@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -24,6 +24,7 @@ jobs:
             -scheme MotoTracker \
             -configuration Release \
             -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
