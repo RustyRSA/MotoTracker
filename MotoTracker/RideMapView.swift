@@ -25,6 +25,9 @@ struct RideMapView: UIViewRepresentable {
     var markers: [RideMapMarker] = []
     var followsUser: Bool = false
     var highlight: CLLocationCoordinate2D? = nil
+    /// While true, the camera tracks `highlight` (zoomed in); when it flips
+    /// back to false the map animates back out to the whole route.
+    var followHighlight: Bool = false
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -87,10 +90,40 @@ struct RideMapView: UIViewRepresentable {
                 map.addAnnotation(pin)
             }
             coordinator.highlightPin?.coordinate = hl
+
+            if followHighlight {
+                if coordinator.isFollowingHighlight {
+                    map.setCenter(hl, animated: false)   // instant, keeps up with the finger
+                } else {
+                    // First scrub tick: zoom from the overview onto the spot.
+                    coordinator.isFollowingHighlight = true
+                    map.setRegion(MKCoordinateRegion(center: hl,
+                                                     latitudinalMeters: 700,
+                                                     longitudinalMeters: 700),
+                                  animated: true)
+                }
+            } else if coordinator.isFollowingHighlight {
+                // Finger lifted: zoom back out, dot stays where it was.
+                coordinator.isFollowingHighlight = false
+                Self.fitWholeRoute(map, animated: true)
+            }
         } else if let pin = coordinator.highlightPin {
             map.removeAnnotation(pin)
             coordinator.highlightPin = nil
+            if coordinator.isFollowingHighlight {
+                coordinator.isFollowingHighlight = false
+                Self.fitWholeRoute(map, animated: true)
+            }
         }
+    }
+
+    private static func fitWholeRoute(_ map: MKMapView, animated: Bool) {
+        guard let polyline = map.overlays.first(where: { $0 is MKPolyline }) else { return }
+        map.setVisibleMapRect(
+            polyline.boundingMapRect,
+            edgePadding: UIEdgeInsets(top: 40, left: 40, bottom: 40, right: 40),
+            animated: animated
+        )
     }
 
     final class Coordinator: NSObject, MKMapViewDelegate {
@@ -99,6 +132,26 @@ struct RideMapView: UIViewRepresentable {
         var renderedPointCount = -1
         var renderedMarkerCount = -1
         var highlightPin: MKPointAnnotation?
+        var isFollowingHighlight = false
+        var didSetInitialUserRegion = false
+
+        /// Live map only (showsUserLocation is set just for followsUser maps):
+        /// first valid fix zooms to the user at neighborhood level, once.
+        func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
+            guard !didSetInitialUserRegion else { return }
+            let c = userLocation.coordinate
+            guard CLLocationCoordinate2DIsValid(c),
+                  abs(c.latitude) > 0.000001 || abs(c.longitude) > 0.000001 else { return }
+            didSetInitialUserRegion = true
+            mapView.setRegion(MKCoordinateRegion(center: c,
+                                                 latitudinalMeters: 1200,
+                                                 longitudinalMeters: 1200),
+                              animated: true)
+            // Programmatic region changes can knock tracking off — re-assert.
+            if mapView.userTrackingMode != .follow {
+                mapView.userTrackingMode = .follow
+            }
+        }
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             guard let polyline = overlay as? MKPolyline else {

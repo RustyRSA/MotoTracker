@@ -7,6 +7,7 @@ struct RideDetailView: View {
     @EnvironmentObject var store: RideStore
     @AppStorage("useMetric") private var useMetric = true
     @State private var scrubIndex: Int? = nil
+    @State private var isScrubbing = false
     @State private var gpxURL: URL? = nil
     @State private var samples: [MetricSample] = []          // speed; also the scrub time axis
     @State private var accelSeries: [MetricSample] = []
@@ -35,7 +36,8 @@ struct RideDetailView: View {
             VStack(spacing: 14) {
                 RideMapView(points: ride.points,
                             markers: mapMarkers,
-                            highlight: scrubCoordinate)
+                            highlight: scrubCoordinate,
+                            followHighlight: isScrubbing)
                     .frame(height: 280)
                     .cornerRadius(12)
 
@@ -292,8 +294,10 @@ struct RideDetailView: View {
                                         let origin = geo[proxy.plotAreaFrame].origin
                                         if let t: Double = proxy.value(atX: value.location.x - origin.x) {
                                             scrubIndex = nearestSampleIndex(to: t)
+                                            isScrubbing = true
                                         }
                                     }
+                                    .onEnded { _ in isScrubbing = false }
                             )
                     }
                 }
