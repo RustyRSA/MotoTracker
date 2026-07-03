@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var recorder: RideRecorder
+    @EnvironmentObject var store: RideStore
+    @State private var demoAdded = false
     @AppStorage("useMetric") private var useMetric = true
     @AppStorage("autoRecord") private var autoRecord = false
 
@@ -29,6 +31,17 @@ struct SettingsView: View {
 
                 Section("How it works") {
                     Text("Route line color shows speed: green = slow, red = fast, relative to that ride's top speed. Orange pins mark hard braking (deceleration over 3 m/s²). Lean angle and G-force are estimated from GPS, so they work regardless of how the phone is mounted. Rides that follow the same road are grouped automatically in Routes, with a personal best per route.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+
+                Section("Testing") {
+                    Button(demoAdded ? "Demo rides added" : "Add demo rides") {
+                        DemoRide.addDemoRides(to: store)
+                        demoAdded = true
+                    }
+                    .disabled(demoAdded)
+                    Text("Adds two fake attempts of the same route \u{2014} with a 0\u{2013}100 sprint, hard braking, corners and a ~160 km/h top speed \u{2014} so History, Routes (PB), Records and the speed graph all have data. Swipe-delete them in History when done.")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
