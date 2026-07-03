@@ -18,6 +18,11 @@ enum Units {
         }
     }
 
+    static func elevationString(_ meters: Double, metric: Bool) -> String {
+        metric ? String(format: "%.0f m", meters)
+               : String(format: "%.0f ft", meters * 3.28084)
+    }
+
     static func durationString(_ seconds: TimeInterval) -> String {
         let s = max(0, Int(seconds))
         return String(format: "%02d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60)

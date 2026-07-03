@@ -14,6 +14,9 @@ enum GPXExporter {
         """
         for p in ride.points {
             out += "      <trkpt lat=\"\(p.latitude)\" lon=\"\(p.longitude)\">"
+            if let ele = p.altitude {
+                out += "<ele>\(String(format: "%.1f", ele))</ele>"   // schema: ele before time
+            }
             out += "<time>\(formatter.string(from: p.timestamp))</time>"
             out += "<extensions><speed>\(String(format: "%.2f", p.speed))</speed></extensions>"
             out += "</trkpt>\n"

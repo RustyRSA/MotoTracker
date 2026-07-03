@@ -152,8 +152,11 @@ enum DemoRide {
                 }
             }
 
+            // Rolling-hills elevation so the elevation chart has demo data.
+            let altitude = 60 + 45 * sin(travelled / 1400 * 2 * .pi) + travelled * 0.004
             points.append(RidePoint(latitude: coord.latitude, longitude: coord.longitude,
-                                    speed: speed, course: lastCourse, timestamp: t))
+                                    speed: speed, course: lastCourse,
+                                    altitude: altitude, timestamp: t))
             prevSpeed = speed
             prevCoord = coord
         }

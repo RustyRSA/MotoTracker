@@ -271,6 +271,7 @@ final class RideRecorder: NSObject, ObservableObject, CLLocationManagerDelegate 
             longitude: location.coordinate.longitude,
             speed: speed,
             course: location.course,
+            altitude: location.verticalAccuracy > 0 ? location.altitude : nil,
             timestamp: location.timestamp
         ))
         lastLocation = location

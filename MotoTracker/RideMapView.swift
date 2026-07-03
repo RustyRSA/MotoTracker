@@ -1,9 +1,28 @@
 import SwiftUI
 import MapKit
 
+/// A pin on the ride map. Kind controls color, glyph and display priority.
+struct RideMapMarker {
+    enum Kind {
+        case braking        // orange, warning triangle
+        case hardAccel      // green, bolt
+        case record         // purple, rosette — best of this ride
+        case allTimeRecord  // yellow, star — best across all rides
+    }
+    let kind: Kind
+    let latitude: Double
+    let longitude: Double
+    let title: String
+    let subtitle: String
+}
+
+final class RideMarkerAnnotation: MKPointAnnotation {
+    var kind: RideMapMarker.Kind = .braking
+}
+
 struct RideMapView: UIViewRepresentable {
     let points: [RidePoint]
-    let brakingEvents: [BrakingEvent]
+    var markers: [RideMapMarker] = []
     var followsUser: Bool = false
     var highlight: CLLocationCoordinate2D? = nil
 
@@ -22,8 +41,10 @@ struct RideMapView: UIViewRepresentable {
     func updateUIView(_ map: MKMapView, context: Context) {
         let coordinator = context.coordinator
 
-        if coordinator.renderedPointCount != points.count {
+        if coordinator.renderedPointCount != points.count
+            || coordinator.renderedMarkerCount != markers.count {
             coordinator.renderedPointCount = points.count
+            coordinator.renderedMarkerCount = markers.count
             map.removeOverlays(map.overlays)
             let old = map.annotations.filter { !($0 is MKUserLocation) && $0 !== coordinator.highlightPin }
             map.removeAnnotations(old)
@@ -38,14 +59,6 @@ struct RideMapView: UIViewRepresentable {
                 let polyline = MKPolyline(coordinates: coords, count: coords.count)
                 map.addOverlay(polyline)
 
-                for event in brakingEvents {
-                    let pin = MKPointAnnotation()
-                    pin.coordinate = CLLocationCoordinate2D(latitude: event.latitude, longitude: event.longitude)
-                    pin.title = "Hard braking"
-                    pin.subtitle = String(format: "%.1f m/s²", event.deceleration)
-                    map.addAnnotation(pin)
-                }
-
                 if !followsUser {
                     map.setVisibleMapRect(
                         polyline.boundingMapRect,
@@ -53,6 +66,16 @@ struct RideMapView: UIViewRepresentable {
                         animated: false
                     )
                 }
+            }
+
+            for marker in markers {
+                let pin = RideMarkerAnnotation()
+                pin.kind = marker.kind
+                pin.coordinate = CLLocationCoordinate2D(latitude: marker.latitude,
+                                                        longitude: marker.longitude)
+                pin.title = marker.title
+                pin.subtitle = marker.subtitle
+                map.addAnnotation(pin)
             }
         }
 
@@ -74,6 +97,7 @@ struct RideMapView: UIViewRepresentable {
         var speeds: [Double] = []
         var maxSpeed: Double = 1
         var renderedPointCount = -1
+        var renderedMarkerCount = -1
         var highlightPin: MKPointAnnotation?
 
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
@@ -104,20 +128,58 @@ struct RideMapView: UIViewRepresentable {
 
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
             guard !(annotation is MKUserLocation) else { return nil }
-            let isScrub = (annotation as? MKPointAnnotation) === highlightPin
-            let identifier = isScrub ? "scrub" : "brake"
-            let view = mapView.dequeueReusableAnnotationView(withIdentifier: identifier) as? MKMarkerAnnotationView
-                ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: identifier)
+
+            // Scrub dot: a plain annotation view (not a marker), so it never
+            // takes part in marker collision and can't be hidden by other pins.
+            if (annotation as? MKPointAnnotation) === highlightPin {
+                let view = mapView.dequeueReusableAnnotationView(withIdentifier: "scrub")
+                    ?? MKAnnotationView(annotation: annotation, reuseIdentifier: "scrub")
+                view.annotation = annotation
+                view.image = Self.scrubDot
+                view.displayPriority = .required
+                view.zPriority = .max
+                view.canShowCallout = false
+                return view
+            }
+
+            guard let marker = annotation as? RideMarkerAnnotation else { return nil }
+            let view = mapView.dequeueReusableAnnotationView(withIdentifier: "marker") as? MKMarkerAnnotationView
+                ?? MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: "marker")
             view.annotation = annotation
-            if isScrub {
-                view.markerTintColor = .systemBlue
-                view.glyphImage = UIImage(systemName: "location.fill")
-            } else {
+            view.canShowCallout = true   // tap for title + exact numbers
+            switch marker.kind {
+            case .braking:
                 view.markerTintColor = .systemOrange
                 view.glyphImage = UIImage(systemName: "exclamationmark.triangle.fill")
+                view.displayPriority = .defaultHigh
+            case .hardAccel:
+                view.markerTintColor = .systemGreen
+                view.glyphImage = UIImage(systemName: "bolt.fill")
+                view.displayPriority = .defaultHigh
+            case .record:
+                view.markerTintColor = .systemPurple
+                view.glyphImage = UIImage(systemName: "rosette")
+                view.displayPriority = .required
+            case .allTimeRecord:
+                view.markerTintColor = .systemYellow
+                view.glyphImage = UIImage(systemName: "star.fill")
+                view.displayPriority = .required
             }
             return view
         }
+
+        /// Blue dot with a white ring, drawn once — sits on the route line.
+        static let scrubDot: UIImage = {
+            let size = CGSize(width: 18, height: 18)
+            return UIGraphicsImageRenderer(size: size).image { _ in
+                let path = UIBezierPath(ovalIn: CGRect(x: 1.5, y: 1.5, width: 15, height: 15))
+                UIColor.systemBlue.setFill()
+                path.fill()
+                UIColor.white.setStroke()
+                path.lineWidth = 3
+                path.stroke()
+            }
+        }()
 
         /// 3-point moving average so the gradient shifts smoothly instead
         /// of flickering with every GPS fix.

@@ -58,7 +58,7 @@ struct RouteDetailView: View {
     var body: some View {
         List {
             Section {
-                RideMapView(points: group.referenceRide.points, brakingEvents: [])
+                RideMapView(points: group.referenceRide.points)
                     .frame(height: 220)
                     .cornerRadius(12)
                     .listRowInsets(EdgeInsets())

@@ -5,6 +5,7 @@ struct RidePoint: Codable {
     let longitude: Double
     let speed: Double        // m/s, always >= 0
     let course: Double       // degrees 0-360, -1 if invalid
+    let altitude: Double?    // meters; nil on invalid fix or rides recorded before v1.2
     let timestamp: Date
 }
 

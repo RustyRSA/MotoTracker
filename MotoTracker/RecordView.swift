@@ -36,7 +36,12 @@ struct RecordView: View {
                 }
 
                 RideMapView(points: recorder.points,
-                            brakingEvents: recorder.brakingEvents,
+                            markers: recorder.brakingEvents.map { e in
+                                RideMapMarker(kind: .braking,
+                                              latitude: e.latitude, longitude: e.longitude,
+                                              title: "Hard braking",
+                                              subtitle: String(format: "%.2f g", e.deceleration / 9.81))
+                            },
                             followsUser: true)
                     .cornerRadius(12)
 
