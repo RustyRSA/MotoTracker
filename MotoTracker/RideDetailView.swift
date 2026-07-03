@@ -7,8 +7,8 @@ struct RideDetailView: View {
     @AppStorage("useMetric") private var useMetric = true
     @State private var scrubIndex: Int? = nil
     @State private var gpxURL: URL? = nil
-
-    private var samples: [SpeedSample] { RideMath.speedSamples(ride.points) }
+    @State private var samples: [SpeedSample] = []
+    @State private var benchmarkResults: [BenchmarkResult] = []
 
     private var scrubCoordinate: CLLocationCoordinate2D? {
         guard let i = scrubIndex, ride.points.indices.contains(i) else { return nil }
@@ -46,7 +46,15 @@ struct RideDetailView: View {
         }
         .onAppear {
             if gpxURL == nil { gpxURL = GPXExporter.writeTempFile(for: ride) }
+            if samples.isEmpty { samples = RideMath.speedSamples(ride.points) }
+            recomputeBenchmarks()
         }
+        .onChange(of: useMetric) { _ in recomputeBenchmarks() }
+    }
+
+    private func recomputeBenchmarks() {
+        let defs = BenchmarkDefinition.set(metric: useMetric)
+        benchmarkResults = BenchmarkEngine.results(for: ride.points, definitions: defs)
     }
 
     private var legend: some View {
@@ -145,17 +153,15 @@ struct RideDetailView: View {
     }
 
     private var benchmarksSection: some View {
-        let defs = BenchmarkDefinition.set(metric: useMetric)
-        let results = BenchmarkEngine.results(for: ride.points, definitions: defs)
-        return VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Timed runs (this ride)")
                 .font(.headline)
-            if results.isEmpty {
+            if benchmarkResults.isEmpty {
                 Text("No complete runs detected on this ride.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             } else {
-                ForEach(results) { r in
+                ForEach(benchmarkResults) { r in
                     HStack {
                         Text(r.definition.name)
                         Spacer()

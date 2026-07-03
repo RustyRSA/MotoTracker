@@ -8,6 +8,10 @@ final class RideStore: ObservableObject {
             .appendingPathComponent("rides.json")
     }
 
+    private var backupURL: URL {
+        fileURL.deletingLastPathComponent().appendingPathComponent("rides.json.bak")
+    }
+
     init() { load() }
 
     func add(_ ride: Ride) {
@@ -24,7 +28,14 @@ final class RideStore: ObservableObject {
         guard let data = try? Data(contentsOf: fileURL) else { return }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        rides = (try? decoder.decode([Ride].self, from: data)) ?? []
+        if let decoded = try? decoder.decode([Ride].self, from: data) {
+            rides = decoded
+        } else {
+            // Corrupt or unreadable schema: preserve the raw bytes before anything
+            // can overwrite rides.json, so history is recoverable instead of lost.
+            try? data.write(to: backupURL, options: .atomic)
+            rides = []
+        }
     }
 
     private func save() {
