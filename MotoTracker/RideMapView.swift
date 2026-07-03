@@ -81,14 +81,17 @@ struct RideMapView: UIViewRepresentable {
                 return MKOverlayRenderer(overlay: overlay)
             }
             let renderer = MKGradientPolylineRenderer(polyline: polyline)
-            renderer.lineWidth = 5
+            // lineWidth 0 = scale with the map like a road, so it stays
+            // slim when zoomed out and readable when zoomed in.
+            renderer.lineWidth = 0
             renderer.lineCap = .round
 
             if speeds.count >= 2 {
-                let n = speeds.count
+                let smooth = Self.smoothed(speeds)
+                let n = smooth.count
                 var colors: [UIColor] = []
                 var fractions: [CGFloat] = []
-                for (i, speed) in speeds.enumerated() {
+                for (i, speed) in smooth.enumerated() {
                     colors.append(Self.color(for: speed, maxSpeed: maxSpeed))
                     fractions.append(CGFloat(i) / CGFloat(n - 1))
                 }
@@ -114,6 +117,17 @@ struct RideMapView: UIViewRepresentable {
                 view.glyphImage = UIImage(systemName: "exclamationmark.triangle.fill")
             }
             return view
+        }
+
+        /// 3-point moving average so the gradient shifts smoothly instead
+        /// of flickering with every GPS fix.
+        static func smoothed(_ values: [Double]) -> [Double] {
+            guard values.count > 2 else { return values }
+            var out = values
+            for i in 1..<(values.count - 1) {
+                out[i] = (values[i - 1] + values[i] + values[i + 1]) / 3
+            }
+            return out
         }
 
         /// Green (slow) -> yellow -> red (fast)

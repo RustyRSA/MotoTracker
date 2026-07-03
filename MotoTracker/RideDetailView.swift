@@ -50,20 +50,31 @@ struct RideDetailView: View {
     }
 
     private var legend: some View {
-        HStack(spacing: 8) {
-            Text("Slow").font(.caption2).foregroundColor(.secondary)
+        let unit = Units.speedUnit(metric: useMetric)
+        return VStack(spacing: 3) {
             LinearGradient(colors: [.green, .yellow, .red],
                            startPoint: .leading, endPoint: .trailing)
                 .frame(height: 6)
                 .cornerRadius(3)
-            Text("Fast").font(.caption2).foregroundColor(.secondary)
-            Spacer(minLength: 12)
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.caption2)
-                .foregroundColor(.orange)
-            Text("\(ride.brakingEvents.count) hard braking")
-                .font(.caption2)
-                .foregroundColor(.secondary)
+            HStack {
+                Text("0 \(unit)")
+                Spacer()
+                Text("\(Units.speedString(ride.maxSpeed / 2, metric: useMetric))")
+                Spacer()
+                Text("\(Units.speedString(ride.maxSpeed, metric: useMetric)) \(unit)")
+            }
+            .font(.caption2)
+            .foregroundColor(.secondary)
+            HStack(spacing: 4) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+                Text("\(ride.brakingEvents.count) hard braking")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(.top, 2)
         }
         .padding(.horizontal, 4)
     }
