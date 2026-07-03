@@ -1,43 +1,33 @@
-name: Build MotoTracker IPA
-
-on:
-  push:
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: macos-15
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Install XcodeGen
-        run: brew install xcodegen
-
-      - name: Generate Xcode project
-        run: xcodegen generate
-
-      - name: Build (unsigned)
-        run: |
-          xcodebuild \
-            -project MotoTracker.xcodeproj \
-            -scheme MotoTracker \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath build \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
-
-      - name: Package IPA
-        run: |
-          mkdir -p Payload
-          cp -r build/Build/Products/Release-iphoneos/MotoTracker.app Payload/
-          zip -r MotoTracker.ipa Payload
-
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: MotoTracker-IPA
-          path: MotoTracker.ipa
+name: MotoTracker
+options:
+  deploymentTarget:
+    iOS: "16.0"
+targets:
+  MotoTracker:
+    type: application
+    platform: iOS
+    sources: [MotoTracker]
+    info:
+      path: MotoTracker/Info.plist
+      properties:
+        CFBundleDisplayName: MotoTracker
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        NSLocationWhenInUseUsageDescription: MotoTracker uses your location to record your ride route and speed.
+        NSLocationAlwaysAndWhenInUseUsageDescription: Allow location access so rides keep recording while the app is in the background.
+        UIBackgroundModes: [location]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.logan.mototracker
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.9"
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGN_IDENTITY: ""
+schemes:
+  MotoTracker:
+    build:
+      targets:
+        MotoTracker: all
