@@ -47,6 +47,9 @@ struct RoutesView: View {
 struct RouteDetailView: View {
     let group: RouteGroup
     @AppStorage("useMetric") private var useMetric = true
+    @AppStorage("riderName") private var riderName = ""
+    @AppStorage("bikeName") private var bikeName = ""
+    @State private var routeCard: RouteCardModel? = nil
 
     private var attempts: [Ride] {
         group.rides.sorted { $0.duration < $1.duration }
@@ -110,5 +113,16 @@ struct RouteDetailView: View {
         }
         .navigationTitle(group.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            Button {
+                routeCard = RouteCardModel.build(group: group, riderName: riderName,
+                                                 bike: bikeName, metric: useMetric)
+            } label: {
+                Image(systemName: "square.and.arrow.up")
+            }
+        }
+        .sheet(item: $routeCard) { model in
+            CardShareSheet(title: "Route card", card: RouteCardView(model: model))
+        }
     }
 }

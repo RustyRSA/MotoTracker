@@ -97,7 +97,8 @@ struct RideDetailView: View {
                 stat("Top", Units.speedString(ride.maxSpeed, metric: useMetric))
             }
             HStack {
-                stat("Max lean", String(format: "%.0f°", analysis.maxLeanDegrees))
+                stat("Lean L", String(format: "%.0f°", analysis.maxLeanLeftDegrees))
+                stat("Lean R", String(format: "%.0f°", analysis.maxLeanRightDegrees))
                 stat("Max accel", String(format: "%.2f g", analysis.maxAccelG))
                 stat("Max brake", String(format: "%.2f g", analysis.maxBrakeG))
             }

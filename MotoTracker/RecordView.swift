@@ -30,7 +30,7 @@ struct RecordView: View {
                 }
 
                 HStack {
-                    stat("Lean", String(format: "%.0f°", recorder.currentLean))
+                    stat("Lean", leanText(recorder.currentLean))
                     stat("G", String(format: "%+.2f", recorder.currentG))
                     stat("Braking", "\(recorder.brakingEvents.count)")
                 }
@@ -74,6 +74,12 @@ struct RecordView: View {
             }
         }
         .navigationViewStyle(.stack)
+    }
+
+    /// Signed lean (negative = left) shown as magnitude plus side, e.g. "23° L".
+    private func leanText(_ lean: Double) -> String {
+        guard abs(lean) >= 0.5 else { return "0°" }
+        return String(format: "%.0f° %@", abs(lean), lean < 0 ? "L" : "R")
     }
 
     private func stat(_ label: String, _ value: String) -> some View {

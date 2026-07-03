@@ -6,10 +6,20 @@ struct SettingsView: View {
     @State private var demoAdded = false
     @AppStorage("useMetric") private var useMetric = true
     @AppStorage("autoRecord") private var autoRecord = false
+    @AppStorage("riderName") private var riderName = ""
+    @AppStorage("bikeName") private var bikeName = ""
 
     var body: some View {
         NavigationView {
             Form {
+                Section("Rider profile") {
+                    TextField("Name", text: $riderName)
+                    TextField("Bike (e.g. MT-09)", text: $bikeName)
+                    Text("Shown on shareable profile and route cards (Records and Routes tabs). Stays on this phone — nothing is uploaded.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                }
+
                 Section("Units") {
                     Picker("Speed units", selection: $useMetric) {
                         Text("km/h").tag(true)

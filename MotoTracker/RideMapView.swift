@@ -81,9 +81,9 @@ struct RideMapView: UIViewRepresentable {
                 return MKOverlayRenderer(overlay: overlay)
             }
             let renderer = MKGradientPolylineRenderer(polyline: polyline)
-            // lineWidth 0 = scale with the map like a road, so it stays
-            // slim when zoomed out and readable when zoomed in.
-            renderer.lineWidth = 0
+            // Fixed width in screen points. Road-scaled (lineWidth = 0) balloons
+            // far wider than the road once you zoom out over a whole ride.
+            renderer.lineWidth = 5
             renderer.lineCap = .round
 
             if speeds.count >= 2 {

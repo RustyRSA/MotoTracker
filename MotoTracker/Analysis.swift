@@ -8,9 +8,13 @@ struct SpeedSample: Identifiable {
 }
 
 struct RideAnalysis {
-    let maxLeanDegrees: Double
+    let maxLeanLeftDegrees: Double
+    let maxLeanRightDegrees: Double
     let maxAccelG: Double
     let maxBrakeG: Double
+
+    /// Larger of the two sides, for places that want a single figure.
+    var maxLeanDegrees: Double { max(maxLeanLeftDegrees, maxLeanRightDegrees) }
 }
 
 enum RideMath {
@@ -25,9 +29,10 @@ enum RideMath {
     /// Longitudinal G and lean angle derived from GPS (speed delta + course rate),
     /// so it works no matter how the phone is mounted or pocketed.
     static func analysis(_ points: [RidePoint]) -> RideAnalysis {
-        var maxLean = 0.0, maxAccel = 0.0, maxBrake = 0.0
+        var maxLeanL = 0.0, maxLeanR = 0.0, maxAccel = 0.0, maxBrake = 0.0
         guard points.count >= 2 else {
-            return RideAnalysis(maxLeanDegrees: 0, maxAccelG: 0, maxBrakeG: 0)
+            return RideAnalysis(maxLeanLeftDegrees: 0, maxLeanRightDegrees: 0,
+                                maxAccelG: 0, maxBrakeG: 0)
         }
         for i in 0..<(points.count - 1) {
             let a = points[i], b = points[i + 1]
@@ -41,16 +46,22 @@ enum RideMath {
                 else { maxBrake = max(maxBrake, -g) }
             }
 
-            // Lean from turn rate: lean = atan(v * omega / g)
+            // Lean from turn rate: lean = atan(v * omega / g).
+            // Course is degrees clockwise from north, so a positive wrapped
+            // delta is a right-hand turn (right lean), negative is left.
             if a.course >= 0, b.course >= 0, b.speed > 3 {
                 var d = b.course - a.course
                 if d > 180 { d -= 360 }
                 if d < -180 { d += 360 }
                 let omega = abs(d) * .pi / 180 / dt
                 let lean = atan(b.speed * omega / 9.81) * 180 / .pi
-                if lean < 65 { maxLean = max(maxLean, lean) }
+                if lean < 65 {
+                    if d > 0 { maxLeanR = max(maxLeanR, lean) }
+                    else if d < 0 { maxLeanL = max(maxLeanL, lean) }
+                }
             }
         }
-        return RideAnalysis(maxLeanDegrees: maxLean, maxAccelG: maxAccel, maxBrakeG: maxBrake)
+        return RideAnalysis(maxLeanLeftDegrees: maxLeanL, maxLeanRightDegrees: maxLeanR,
+                            maxAccelG: maxAccel, maxBrakeG: maxBrake)
     }
 }

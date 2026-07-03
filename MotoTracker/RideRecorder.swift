@@ -7,7 +7,7 @@ final class RideRecorder: NSObject, ObservableObject, CLLocationManagerDelegate 
     @Published var currentSpeed: Double = 0          // m/s
     @Published var topSpeed: Double = 0              // m/s, this ride
     @Published var currentG: Double = 0              // longitudinal, +accel / -brake
-    @Published var currentLean: Double = 0           // degrees
+    @Published var currentLean: Double = 0           // degrees, negative = left / positive = right
     @Published var points: [RidePoint] = []
     @Published var brakingEvents: [BrakingEvent] = []
     @Published var distance: Double = 0              // meters
@@ -231,14 +231,15 @@ final class RideRecorder: NSObject, ObservableObject, CLLocationManagerDelegate 
                 let g = accel / 9.81
                 if abs(g) < 1.6 { currentG = g }
 
-                // Live lean from turn rate
+                // Live lean from turn rate, signed: negative = left, positive = right
+                // (course is clockwise from north, so positive delta = right turn)
                 if last.course >= 0, location.course >= 0, speed > 3 {
                     var d = location.course - last.course
                     if d > 180 { d -= 360 }
                     if d < -180 { d += 360 }
                     let omega = abs(d) * .pi / 180 / dt
                     let lean = atan(speed * omega / 9.81) * 180 / .pi
-                    if lean < 65 { currentLean = lean }
+                    if lean < 65 { currentLean = d < 0 ? -lean : lean }
                 } else {
                     currentLean = 0
                 }

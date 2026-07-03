@@ -3,6 +3,9 @@ import SwiftUI
 struct RecordsView: View {
     @EnvironmentObject var store: RideStore
     @AppStorage("useMetric") private var useMetric = true
+    @AppStorage("riderName") private var riderName = ""
+    @AppStorage("bikeName") private var bikeName = ""
+    @State private var profileCard: ProfileCardModel? = nil
 
     struct Trophy: Identifiable {
         let id: String
@@ -20,6 +23,28 @@ struct RecordsView: View {
                         .foregroundColor(.secondary)
                 } else {
                     List {
+                        Section("Rider") {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(riderName.isEmpty ? "Unnamed rider" : riderName)
+                                        .font(.headline)
+                                    Text(bikeName.isEmpty ? "Set name and bike in Settings" : bikeName)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Button {
+                                    profileCard = ProfileCardModel.build(
+                                        name: riderName, bike: bikeName,
+                                        rides: store.rides, metric: useMetric)
+                                } label: {
+                                    Label("Card", systemImage: "square.and.arrow.up")
+                                        .font(.subheadline)
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                            .padding(.vertical, 2)
+                        }
                         Section("Acceleration — all-time best") {
                             ForEach(accelerationTrophies) { trophyRow($0) }
                         }
@@ -33,6 +58,9 @@ struct RecordsView: View {
                 }
             }
             .navigationTitle("Records")
+            .sheet(item: $profileCard) { model in
+                CardShareSheet(title: "Profile card", card: ProfileCardView(model: model))
+            }
         }
         .navigationViewStyle(.stack)
     }
@@ -87,17 +115,22 @@ struct RecordsView: View {
                 date: fastest.startDate))
         }
 
-        var bestLean: (Double, Date)? = nil
+        var bestLeanL: (Double, Date)? = nil
+        var bestLeanR: (Double, Date)? = nil
         var bestAccel: (Double, Date)? = nil
         var bestBrake: (Double, Date)? = nil
         for ride in store.rides {
             let a = RideMath.analysis(ride.points)
-            if bestLean == nil || a.maxLeanDegrees > bestLean!.0 { bestLean = (a.maxLeanDegrees, ride.startDate) }
+            if bestLeanL == nil || a.maxLeanLeftDegrees > bestLeanL!.0 { bestLeanL = (a.maxLeanLeftDegrees, ride.startDate) }
+            if bestLeanR == nil || a.maxLeanRightDegrees > bestLeanR!.0 { bestLeanR = (a.maxLeanRightDegrees, ride.startDate) }
             if bestAccel == nil || a.maxAccelG > bestAccel!.0 { bestAccel = (a.maxAccelG, ride.startDate) }
             if bestBrake == nil || a.maxBrakeG > bestBrake!.0 { bestBrake = (a.maxBrakeG, ride.startDate) }
         }
-        if let (v, d) = bestLean {
-            trophies.append(Trophy(id: "lean", name: "Max lean angle", value: String(format: "%.0f°", v), date: d))
+        if let (v, d) = bestLeanL {
+            trophies.append(Trophy(id: "leanL", name: "Max lean left", value: String(format: "%.0f°", v), date: d))
+        }
+        if let (v, d) = bestLeanR {
+            trophies.append(Trophy(id: "leanR", name: "Max lean right", value: String(format: "%.0f°", v), date: d))
         }
         if let (v, d) = bestAccel {
             trophies.append(Trophy(id: "accelg", name: "Max acceleration", value: String(format: "%.2f g", v), date: d))
