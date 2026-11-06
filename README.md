@@ -6,15 +6,19 @@ Built for iPhone 14 Pro on iOS 16.3.1, installed permanently via **TrollStore** 
 
 ## Features
 
-- **Live dashboard** — big speedometer, distance, timer, top speed, live lean angle and G readout, live map.
+- **Live dashboard** — big speedometer, distance, timer, top speed, live lean angle (with side, e.g. "23° L") and G readout. The live map zooms to your position on the first GPS fix and follows you.
 - **Timed runs** — detected automatically anywhere in a ride. km/h mode: 0–100, 0–200, 60–120, 100–200 km/h, 400 m. mph mode: 0–30, 0–60, 20–80, 60–130 mph, 1/8 + 1/4 mile (with trap speed). Set follows the units setting.
 - **Routes with personal bests** — rides that follow the same road (same start, end, and path) are grouped automatically. Each route shows your PB time, best top speed, and every attempt with its delta to the PB.
-- **Speed-gradient route line** — green = slow, red = fast; orange pins where you braked hard (> 3 m/s²).
-- **Speed graph** — per ride, drag across it and a marker shows where on the map you were.
-- **Lean angle & G-force** — estimated from GPS (turn rate + speed change), so phone mounting doesn't matter. Max lean / max accel g / max brake g per ride.
-- **Records screen** — all-time best for every timed run, top speed ever, max lean, max G, longest ride, totals.
+- **Speed-gradient route line** — green = slow, red = fast, relative to that ride's top speed, with a speed legend under the map.
+- **Map markers** — orange pins where you braked hard (> 3 m/s²), green bolts where you accelerated hard (> 4 m/s²), purple pins where this ride's records happened (top speed, best accel, hardest braking, max lean), and a yellow star when that record is your all-time best.
+- **Ride graph** — per ride, switch between Speed, Accel (g), Lean (right +, left −) and Elevation. Drag across the graph and a dot shows where on the map you were; the map zooms in and follows your finger, then zooms back out to the whole route when you let go (the dot stays put).
+- **Lean angle & G-force** — estimated from GPS (turn rate + speed change), so phone mounting doesn't matter. Max lean left and right, max accel g and max brake g per ride.
+- **Elevation** — recorded with each GPS fix and exported to GPX. Rides recorded before version 1.2 have no elevation data.
+- **Records screen** — all-time best for every timed run, top speed ever, max lean left/right, max G, longest ride, totals.
+- **Rider profile & share cards** — set your name and bike in Settings, then share a profile card (Records tab) or a route PB card (any route) as an image. The image is made on the phone; nothing is uploaded.
 - **GPX export** — share button on any ride exports a GPX file for other apps.
-- **Auto-record (optional)** — Life360-style: enable it in Settings and the app wakes on cell-tower movement, starts recording when it sees sustained riding speed, and saves the ride after 3 minutes stationary. Near-zero battery while parked because GPS is off until you actually move. Needs location set to "Always"; it can't tell bike from car, so delete trips you don't want.
+- **Demo rides** — Settings → Testing → "Add demo rides" adds two attempts of the same real road (one faster, so it becomes the PB) so you can try every screen before riding. The road starts where your latest ride started, or in Cape Town if you have no rides yet. Needs internet when you tap it (offline it falls back to a straight line); swipe-delete them in History afterwards.
+- **Auto-record (optional)** — Life360-style: enable it in Settings and the app wakes on cell-tower movement, starts recording when it sees sustained riding speed, and saves the ride after 3 minutes stationary. Near-zero battery while parked because GPS is off until you actually move. Needs location set to "Always"; it can't tell bike from car, so delete trips you don't want. The first few hundred meters before the wake-up may be missed.
 
 ## How to build the IPA (no Mac needed)
 
@@ -39,11 +43,13 @@ Your device (iPhone 14 Pro, iOS 16.3.1, jailbroken) is fully supported — Troll
 
 - The iPhone GPS updates ~1×/second; run times are interpolated between fixes, giving roughly ±0.2 s accuracy — same class as other phone-based timers. A dedicated 10 Hz GPS box would be needed to do better.
 - Lean angle is estimated from cornering physics (speed × turn rate), not the phone's tilt — it reflects the ideal lean for the corner, and works from your pocket.
+- Elevation comes from GPS altitude, which is noisier than horizontal position (typically ±5–10 m). Fine for seeing climbs and descents, not for exact heights.
 - Route PB uses total ride time from start to stop, so stop the recording at the same place for fair comparisons.
 
 ## Tweaking
 
 - Hard-braking sensitivity: `brakingThreshold` in `RideRecorder.swift` (m/s², default 3).
+- Hard-acceleration markers: threshold in `hardAccelEvents()` in `Analysis.swift` (m/s², default 4).
 - Route matching tolerance: endpoint radius (250 m) and path deviation (120 m) in `RouteMatcher.swift`.
 - Push any change to GitHub and it rebuilds the IPA automatically.
 
